@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthStatus } from "./AuthStatus";
 
 export function Masthead() {
   return (
@@ -10,8 +11,12 @@ export function Masthead() {
         <span className="font-score text-xs text-ink/60">
           football &harr; nba
         </span>
-        {/* auth entry point lands in milestone 4 */}
-        <span id="auth-slot" />
+        <nav className="flex items-center gap-4">
+          <Link href="/propose" className="font-score text-xs underline hover:text-pitch">
+            new take
+          </Link>
+          <AuthStatus />
+        </nav>
       </div>
     </header>
   );

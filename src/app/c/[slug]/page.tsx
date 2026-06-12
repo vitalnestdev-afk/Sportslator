@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { Masthead } from "@/components/Masthead";
 import { SplitHero } from "@/components/SplitHero";
-import { VoteBar } from "@/components/VoteBar";
+import { VoteButtons } from "@/components/VoteButtons";
+import { Comments } from "@/components/Comments";
+import { ShareButton } from "@/components/ShareButton";
 import { getComparison } from "@/lib/queries";
 import { DIMENSION_ORDER, DIMENSION_LABELS } from "@/lib/types";
 import type { Metadata } from "next";
 
-export const revalidate = 15;
+export const revalidate = 0;
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -18,7 +20,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description: c.verdict_text,
-    openGraph: { title, description: c.verdict_text },
+    openGraph: {
+      title,
+      description: c.verdict_text,
+      images: [{ url: `/c/${slug}/opengraph-image`, width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image" },
   };
 }
 
@@ -40,15 +47,24 @@ export default async function ComparisonPage({ params }: Props) {
           <SplitHero a={c.entity_a} b={c.entity_b} animate />
         </div>
 
-        <p className="mt-6 text-lg font-semibold">{c.verdict_text}</p>
-        {c.status === "seed" && (
-          <p className="font-score text-xs text-ink/50 mt-1">
-            house take — written to be argued with
-          </p>
-        )}
+        <div className="mt-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-lg font-semibold">{c.verdict_text}</p>
+            {c.status === "seed" && (
+              <p className="font-score text-xs text-ink/50 mt-1">
+                house take — written to be argued with
+              </p>
+            )}
+          </div>
+          <ShareButton slug={slug} />
+        </div>
 
         <div className="mt-6">
-          <VoteBar agrees={c.agrees} disagrees={c.disagrees} />
+          <VoteButtons
+            comparisonId={c.id}
+            agrees={c.agrees}
+            disagrees={c.disagrees}
+          />
         </div>
 
         <dl className="mt-8 space-y-4">
@@ -61,7 +77,8 @@ export default async function ComparisonPage({ params }: Props) {
             </div>
           ))}
         </dl>
-        {/* vote buttons land in milestone 5, comments in milestone 6, share card in 7 */}
+
+        <Comments comparisonId={c.id} />
       </main>
     </>
   );
