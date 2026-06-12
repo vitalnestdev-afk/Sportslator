@@ -44,3 +44,9 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes seamIn {
+  from { clip-path: polygon(0 0, 0% 0, 0% 100%, 0 100%); }
+  to { clip-path: polygon(0 0, 56% 0, 44% 100%, 0 100%); }
+}
+.seam-in { animation: seamIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

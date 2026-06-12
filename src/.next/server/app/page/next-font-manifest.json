@@ -1,0 +1,15 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/src/app/page": [
+      "static/media/anton_latin_400_normal-s.p.2c_xnsc2yf3c2.woff2",
+      "static/media/hanken_grotesk_latin_400_normal-s.p.18lpns2xtfj9z.woff2",
+      "static/media/hanken_grotesk_latin_600_normal-s.p.0c7b5n7trqal9.woff2",
+      "static/media/hanken_grotesk_latin_700_normal-s.p.061szqq7cg1k1.woff2",
+      "static/media/space_mono_latin_400_normal-s.p.37_1qewfwlumh.woff2",
+      "static/media/space_mono_latin_700_normal-s.p.3dmnla43cklex.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}
