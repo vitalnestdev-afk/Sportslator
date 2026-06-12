@@ -1,8 +1,6 @@
 import { supabaseServer } from "./supabase-server";
 
-const configured = () =>
-  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const configured = () => true;
 import type { Entity, LeaderboardRow, Dimension } from "./types";
 
 export async function getLeaderboard(): Promise<LeaderboardRow[]> {
