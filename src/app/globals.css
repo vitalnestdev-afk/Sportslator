@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #1a1e1c;
+  --chalk: #ebeae3;
+  --whitewash: #fbfaf6;
+  --pitch: #177a3d;
+  --card-red: #c8102e;
+  --line: #c9c7bd;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-chalk: var(--chalk);
+  --color-whitewash: var(--whitewash);
+  --color-pitch: var(--pitch);
+  --color-cardred: var(--card-red);
+  --color-line: var(--line);
+  --font-display: var(--font-anton);
+  --font-body: var(--font-hanken);
+  --font-mono: var(--font-spacemono);
+}
+
+body {
+  background: var(--chalk);
+  color: var(--ink);
+  font-family: var(--font-hanken), sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-anton), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.font-score {
+  font-family: var(--font-spacemono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
