@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { ensureUser } from "@/lib/ensure-user";
 
 export function CommentForm({
   comparisonId,
@@ -23,14 +24,14 @@ export function CommentForm({
     setBusy(true);
     setError(null);
     const supabase = supabaseBrowser();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
+    const user = await ensureUser();
+    if (!user) {
       router.push(`/signin?next=${encodeURIComponent(location.pathname)}`);
       return;
     }
     const { error } = await supabase.from("comments").insert({
       comparison_id: comparisonId,
-      user_id: auth.user.id,
+      user_id: user.id,
       body: body.trim(),
       parent_id: parentId ?? null,
     });

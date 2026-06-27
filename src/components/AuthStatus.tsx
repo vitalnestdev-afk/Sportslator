@@ -29,6 +29,12 @@ export function AuthStatus() {
         sign in
       </Link>
     );
+  if (user.is_anonymous)
+    return (
+      <Link href="/signin" className="font-score text-xs underline hover:text-pitch">
+        guest · claim
+      </Link>
+    );
   return (
     <span className="font-score text-xs flex items-center gap-2">
       {user.email?.split("@")[0]}

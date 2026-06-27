@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { ensureUser } from "@/lib/ensure-user";
 import { VoteBar } from "./VoteBar";
 
 type V = "agree" | "disagree";
@@ -17,14 +18,12 @@ export function VoteButtons({
 }) {
   const router = useRouter();
   const [mine, setMine] = useState<V | null>(null);
-  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   // optimistic deltas
   const [delta, setDelta] = useState({ agree: 0, disagree: 0 });
 
   useEffect(() => {
     const supabase = supabaseBrowser();
     supabase.auth.getUser().then(async ({ data }) => {
-      setSignedIn(!!data.user);
       if (!data.user) return;
       const { data: v } = await supabase
         .from("votes")
@@ -38,8 +37,8 @@ export function VoteButtons({
 
   async function vote(value: V) {
     const supabase = supabaseBrowser();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
+    const user = await ensureUser();
+    if (!user) {
       router.push(`/signin?next=${encodeURIComponent(location.pathname)}`);
       return;
     }
@@ -54,7 +53,7 @@ export function VoteButtons({
     const { error } = await supabase
       .from("votes")
       .upsert(
-        { comparison_id: comparisonId, user_id: auth.user.id, value },
+        { comparison_id: comparisonId, user_id: user.id, value },
         { onConflict: "comparison_id,user_id" }
       );
     if (error) {
@@ -85,11 +84,6 @@ export function VoteButtons({
       <div className="mt-3 flex gap-3">
         {btn("agree", "Agree", "border-pitch bg-pitch text-whitewash")}
         {btn("disagree", "Call it wrong", "border-cardred bg-cardred text-whitewash")}
-        {signedIn === false && (
-          <span className="self-center text-xs text-ink/60">
-            voting needs a sign-in — one click, no password
-          </span>
-        )}
       </div>
     </div>
   );

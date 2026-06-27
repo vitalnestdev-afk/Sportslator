@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { ensureUser } from "@/lib/ensure-user";
 import type { Entity } from "@/lib/types";
 import { DIMENSION_ORDER, DIMENSION_LABELS } from "@/lib/types";
 
@@ -37,8 +38,8 @@ export function ProposeForm({
     setError(null);
     setBusy(true);
     const supabase = supabaseBrowser();
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
+    const user = await ensureUser();
+    if (!user) {
       router.push(`/signin?next=/propose`);
       return;
     }
@@ -60,7 +61,7 @@ export function ProposeForm({
         entity_b_id: b,
         verdict_text: verdict,
         status: "user",
-        created_by: auth.user.id,
+        created_by: user.id,
       })
       .select("id")
       .single();
