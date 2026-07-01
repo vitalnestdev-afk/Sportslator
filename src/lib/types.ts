@@ -1,10 +1,31 @@
+export type EntityType = "club" | "player";
+export type EntityStatus = "seed" | "user";
+export type PlayerEra = "active" | "historic";
+
 export type Entity = {
   id: string;
   name: string;
   slug: string;
+  type: EntityType;
+  status: EntityStatus;
+  era: PlayerEra | null;
   primary_color: string;
   secondary_color: string;
   sport_id: string;
+  created_by?: string | null;
+};
+
+export type Sport = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type ResolvePlayerResult = {
+  entity_id: string;
+  matched_existing: boolean;
+  entity_slug: string;
+  entity_name: string;
 };
 
 export type Dimension = {
@@ -45,3 +66,19 @@ export const DIMENSION_LABELS: Record<string, string> = {
 
 /** Minimum votes before a take is eligible for the top table. */
 export const MIN_VOTES = 3;
+
+export function entityLabel(e: Entity, sportName?: string): string {
+  const kind = e.type === "player" ? "player" : "club";
+  const era =
+    e.type === "player" && e.era
+      ? e.era === "active"
+        ? " · active"
+        : " · historic"
+      : "";
+  const sport = sportName ? ` (${sportName})` : "";
+  return `${e.name}${sport} · ${kind}${era}`;
+}
+
+export function entityKindLabel(type: EntityType): string {
+  return type === "player" ? "player" : "club";
+}

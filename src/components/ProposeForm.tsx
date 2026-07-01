@@ -3,26 +3,28 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { ensureUser } from "@/lib/ensure-user";
-import type { Entity } from "@/lib/types";
+import type { Entity, Sport } from "@/lib/types";
 import { DIMENSION_ORDER, DIMENSION_LABELS } from "@/lib/types";
+import { EntityPicker } from "./EntityPicker";
 
 const DIMENSION_HINTS: Record<string, string> = {
-  pedigree: "history, trophies, old money or new",
+  pedigree: "history, trophies, legacy, peak years",
   trajectory: "where they're headed and how it feels",
   fanbase: "who follows them and what that says",
-  city: "what the place puts in the club",
+  city: "what the place puts in the player/club",
   aura: "clutch-ness, dread, inevitability",
   style: "how they actually play",
 };
 
 export function ProposeForm({
-  entities,
+  entities: initialEntities,
   sports,
 }: {
   entities: Entity[];
-  sports: { id: string; name: string; slug: string }[];
+  sports: Sport[];
 }) {
   const router = useRouter();
+  const [entities, setEntities] = useState(initialEntities);
   const [a, setA] = useState("");
   const [b, setB] = useState("");
   const [verdict, setVerdict] = useState("");
@@ -30,8 +32,11 @@ export function ProposeForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sportName = (e: Entity) =>
-    sports.find((s) => s.id === e.sport_id)?.name ?? "";
+  function addEntity(entity: Entity) {
+    setEntities((prev) =>
+      prev.some((e) => e.id === entity.id) ? prev : [...prev, entity]
+    );
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,34 +94,34 @@ export function ProposeForm({
   }
 
   const valid =
-    a && b && a !== b && verdict.trim().length > 4 &&
+    a &&
+    b &&
+    a !== b &&
+    verdict.trim().length > 4 &&
     DIMENSION_ORDER.every((d) => dims[d]?.trim());
-
-  const select = (value: string, set: (v: string) => void, label: string) => (
-    <label className="flex-1">
-      <span className="font-score text-xs uppercase text-ink/60">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => set(e.target.value)}
-        required
-        className="mt-1 w-full border-2 border-ink bg-whitewash px-2 py-2 rounded-[2px] focus:outline-none focus:border-pitch"
-      >
-        <option value="">pick a club</option>
-        {entities.map((e) => (
-          <option key={e.id} value={e.id}>
-            {e.name} ({sportName(e)})
-          </option>
-        ))}
-      </select>
-    </label>
-  );
 
   return (
     <form onSubmit={submit} className="mt-8 space-y-5">
-      <div className="flex gap-3 items-end">
-        {select(a, setA, "this club…")}
-        <span className="font-display text-2xl pb-2">&asymp;</span>
-        {select(b, setB, "…is this club")}
+      <div className="flex gap-3 items-start">
+        <EntityPicker
+          value={a}
+          onChange={setA}
+          entities={entities}
+          sports={sports}
+          label="this side…"
+          excludeId={b}
+          onEntityAdded={addEntity}
+        />
+        <span className="font-display text-2xl pt-8">&asymp;</span>
+        <EntityPicker
+          value={b}
+          onChange={setB}
+          entities={entities}
+          sports={sports}
+          label="…is this side"
+          excludeId={a}
+          onEntityAdded={addEntity}
+        />
       </div>
       <label className="block">
         <span className="font-score text-xs uppercase text-ink/60">

@@ -9,9 +9,12 @@ export function Masthead() {
           Sportslator
         </Link>
         <span className="font-score text-xs text-ink/60">
-          football &harr; nba
+          football &harr; nba · clubs &amp; players
         </span>
         <nav className="flex items-center gap-4">
+          <Link href="/players" className="font-score text-xs underline hover:text-pitch">
+            players
+          </Link>
           <Link href="/propose" className="font-score text-xs underline hover:text-pitch">
             new take
           </Link>

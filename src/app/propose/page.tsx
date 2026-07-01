@@ -15,8 +15,8 @@ export default async function ProposePage() {
       <main className="mx-auto w-full max-w-2xl px-4 pb-16 flex-1">
         <h1 className="font-display text-4xl mt-10">New take</h1>
         <p className="mt-2 text-ink/70">
-          Pick two clubs, make the case across all six dimensions. It goes live
-          immediately — the crowd decides if you&apos;re right.
+          Pick two clubs or players, make the case across all six dimensions. It
+          goes live immediately — the crowd decides if you&apos;re right.
         </p>
         <ProposeForm
           entities={(entities ?? []) as Entity[]}

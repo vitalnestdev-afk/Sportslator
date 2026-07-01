@@ -1,7 +1,39 @@
 import { supabaseServer } from "./supabase-server";
 
 const configured = () => true;
-import type { Entity, LeaderboardRow, Dimension } from "./types";
+import type { Entity, LeaderboardRow, Dimension, Sport } from "./types";
+
+export async function getSports(): Promise<Sport[]> {
+  if (!configured()) return [];
+  const supabase = await supabaseServer();
+  const { data } = await supabase.from("sports").select("*").order("name");
+  return (data ?? []) as Sport[];
+}
+
+export async function getEntities(type?: Entity["type"]): Promise<Entity[]> {
+  if (!configured()) return [];
+  const supabase = await supabaseServer();
+  let q = supabase.from("entities").select("*").order("name");
+  if (type) q = q.eq("type", type);
+  const { data } = await q;
+  return (data ?? []) as Entity[];
+}
+
+export async function getPlayers(sportSlug?: string): Promise<
+  (Entity & { sport: Sport })[]
+> {
+  if (!configured()) return [];
+  const supabase = await supabaseServer();
+  const [{ data: sports }, { data: players }] = await Promise.all([
+    supabase.from("sports").select("*"),
+    supabase.from("entities").select("*").eq("type", "player").order("name"),
+  ]);
+  if (!players || !sports) return [];
+  const sportById = new Map((sports as Sport[]).map((s) => [s.id, s]));
+  return (players as Entity[])
+    .map((p) => ({ ...p, sport: sportById.get(p.sport_id)! }))
+    .filter((p) => p.sport && (!sportSlug || p.sport.slug === sportSlug));
+}
 
 export async function getLeaderboard(): Promise<LeaderboardRow[]> {
   if (!configured()) return [];

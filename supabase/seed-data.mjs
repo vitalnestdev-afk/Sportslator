@@ -1,6 +1,8 @@
 // Seed corpus: football (soccer) -> NBA. One anchor pair, per brief §7.
 // Adding a sport/pair = add to this file + rerun generator. No code changes.
 
+export { players } from "./players-seed.mjs";
+
 export const sports = [
   { slug: "football", name: "Football" },
   { slug: "nba", name: "NBA" },
