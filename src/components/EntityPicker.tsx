@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AddPlayerForm } from "./AddPlayerForm";
+import { AddPersonForm } from "./AddPersonForm";
 import type { Entity, EntityType, Sport } from "@/lib/types";
-import { entityLabel } from "@/lib/types";
+import { entityLabel, isPersonType } from "@/lib/types";
 
 type Props = {
   value: string;
@@ -24,13 +24,16 @@ export function EntityPicker({
   sports,
   label,
   excludeId,
-  allowedTypes = ["club", "player"],
+  allowedTypes = ["club", "player", "coach"],
   onEntityAdded,
   extraEntities = [],
 }: Props) {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | EntityType>("all");
-  const [addingForSport, setAddingForSport] = useState<Sport | null>(null);
+  const [adding, setAdding] = useState<{
+    sport: Sport;
+    type: "player" | "coach";
+  } | null>(null);
 
   const allEntities = useMemo(() => {
     const byId = new Map<string, Entity>();
@@ -59,13 +62,14 @@ export function EntityPicker({
   const selected = allEntities.find((e) => e.id === value);
 
   function handleAdded(entity: Entity) {
-    setAddingForSport(null);
+    setAdding(null);
     setQuery("");
     onEntityAdded?.(entity);
     onChange(entity.id);
   }
 
   const canAddPlayer = allowedTypes.includes("player");
+  const canAddCoach = allowedTypes.includes("coach");
 
   return (
     <div className="flex-1">
@@ -82,6 +86,9 @@ export function EntityPicker({
           {allowedTypes.includes("club") && <option value="club">clubs</option>}
           {allowedTypes.includes("player") && (
             <option value="player">players</option>
+          )}
+          {allowedTypes.includes("coach") && (
+            <option value="coach">coaches</option>
           )}
         </select>
         <input
@@ -100,7 +107,7 @@ export function EntityPicker({
         size={6}
         className="mt-1 w-full border-2 border-ink bg-whitewash px-2 py-1 rounded-[2px] focus:outline-none focus:border-pitch"
       >
-        <option value="">pick a club or player</option>
+        <option value="">pick a club, player, or coach</option>
         {filtered.map((e) => (
           <option key={e.id} value={e.id}>
             {entityLabel(e, sportName(e))}
@@ -115,30 +122,53 @@ export function EntityPicker({
         </p>
       )}
 
-      {canAddPlayer && (
+      {(canAddPlayer || canAddCoach) && (
         <div className="mt-2">
-          {!addingForSport ? (
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              <span className="font-score text-xs text-ink/50">
-                missing a player?
+          {!adding ? (
+            <div className="space-y-1">
+              <span className="font-score text-xs text-ink/50 block">
+                missing someone?
               </span>
-              {sports.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setAddingForSport(s)}
-                  className="font-score text-xs underline hover:text-pitch"
-                >
-                  add {s.name.toLowerCase()} player
-                </button>
-              ))}
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {sports.flatMap((s) => {
+                  const links: React.ReactNode[] = [];
+                  if (canAddPlayer)
+                    links.push(
+                      <button
+                        key={`${s.id}-player`}
+                        type="button"
+                        onClick={() =>
+                          setAdding({ sport: s, type: "player" })
+                        }
+                        className="font-score text-xs underline hover:text-pitch"
+                      >
+                        + {s.name.toLowerCase()} player
+                      </button>
+                    );
+                  if (canAddCoach)
+                    links.push(
+                      <button
+                        key={`${s.id}-coach`}
+                        type="button"
+                        onClick={() =>
+                          setAdding({ sport: s, type: "coach" })
+                        }
+                        className="font-score text-xs underline hover:text-pitch"
+                      >
+                        + {s.name.toLowerCase()} coach
+                      </button>
+                    );
+                  return links;
+                })}
+              </div>
             </div>
           ) : (
-            <AddPlayerForm
-              sport={addingForSport}
+            <AddPersonForm
+              sport={adding.sport}
+              entityType={adding.type}
               entities={allEntities}
               onAdded={handleAdded}
-              onCancel={() => setAddingForSport(null)}
+              onCancel={() => setAdding(null)}
             />
           )}
         </div>

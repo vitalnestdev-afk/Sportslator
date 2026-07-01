@@ -1,6 +1,6 @@
-export type EntityType = "club" | "player";
+export type EntityType = "club" | "player" | "coach";
 export type EntityStatus = "seed" | "user";
-export type PlayerEra = "active" | "historic";
+export type PersonEra = "active" | "historic";
 
 export type Entity = {
   id: string;
@@ -8,7 +8,7 @@ export type Entity = {
   slug: string;
   type: EntityType;
   status: EntityStatus;
-  era: PlayerEra | null;
+  era: PersonEra | null;
   primary_color: string;
   secondary_color: string;
   sport_id: string;
@@ -21,12 +21,15 @@ export type Sport = {
   slug: string;
 };
 
-export type ResolvePlayerResult = {
+export type ResolvePersonResult = {
   entity_id: string;
   matched_existing: boolean;
   entity_slug: string;
   entity_name: string;
 };
+
+/** @deprecated use ResolvePersonResult */
+export type ResolvePlayerResult = ResolvePersonResult;
 
 export type Dimension = {
   dimension: "pedigree" | "trajectory" | "fanbase" | "city" | "aura" | "style";
@@ -67,10 +70,16 @@ export const DIMENSION_LABELS: Record<string, string> = {
 /** Minimum votes before a take is eligible for the top table. */
 export const MIN_VOTES = 3;
 
+const TYPE_LABELS: Record<EntityType, string> = {
+  club: "club",
+  player: "player",
+  coach: "coach",
+};
+
 export function entityLabel(e: Entity, sportName?: string): string {
-  const kind = e.type === "player" ? "player" : "club";
+  const kind = TYPE_LABELS[e.type];
   const era =
-    e.type === "player" && e.era
+    e.type !== "club" && e.era
       ? e.era === "active"
         ? " · active"
         : " · historic"
@@ -80,5 +89,9 @@ export function entityLabel(e: Entity, sportName?: string): string {
 }
 
 export function entityKindLabel(type: EntityType): string {
-  return type === "player" ? "player" : "club";
+  return TYPE_LABELS[type];
+}
+
+export function isPersonType(type: EntityType): boolean {
+  return type === "player" || type === "coach";
 }

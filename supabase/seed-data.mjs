@@ -1,12 +1,7 @@
-// Seed corpus: football (soccer) -> NBA. One anchor pair, per brief §7.
-// Adding a sport/pair = add to this file + rerun generator. No code changes.
+// Seed corpus: football (soccer) -> NBA club pairs + multi-sport stars.
+// People roster lives in supabase/seed/ — run gen-seed-sql.mjs after edits.
 
-export { players } from "./players-seed.mjs";
-
-export const sports = [
-  { slug: "football", name: "Football" },
-  { slug: "nba", name: "NBA" },
-];
+export { sports, people } from "./seed/index.mjs";
 
 // [sport, name, slug, primary, secondary]
 export const entities = [

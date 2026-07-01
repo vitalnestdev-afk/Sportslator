@@ -1,5 +1,5 @@
--- Sportslator schema (v2 — players + user submission + dedup)
-create type entity_type as enum ('club', 'player');
+-- Sportslator schema (v3 — multi-sport stars + coaches)
+create type entity_type as enum ('club', 'player', 'coach');
 create type entity_status as enum ('seed', 'user');
 create type player_era as enum ('active', 'historic');
 create type comparison_status as enum ('seed', 'user', 'hidden');
@@ -40,7 +40,7 @@ create table entity_aliases (
 );
 
 create index entity_aliases_norm_idx on entity_aliases (normalized_alias);
-create index entities_player_name_idx on entities (sport_id, lower(name)) where type = 'player';
+create index entities_person_name_idx on entities (sport_id, lower(name)) where type in ('player', 'coach');
 
 create table comparisons (
   id uuid primary key default gen_random_uuid(),
@@ -154,10 +154,11 @@ language sql immutable as $$
   );
 $$;
 
--- Find or create a player; links duplicate suggestions to the canonical row.
-create or replace function resolve_or_create_player(
+-- Find or create a player or coach; links duplicate suggestions to the canonical row.
+create or replace function resolve_or_create_person(
   p_sport_slug text,
   p_name text,
+  p_entity_type entity_type default 'player',
   p_primary_color text default '#177a3d',
   p_secondary_color text default '#1a1e1c'
 ) returns table (
@@ -176,12 +177,16 @@ declare
   v_user uuid := auth.uid();
 begin
   if v_user is null then
-    raise exception 'Must be signed in to add a player';
+    raise exception 'Must be signed in to add a person';
+  end if;
+
+  if p_entity_type not in ('player', 'coach') then
+    raise exception 'Can only add players or coaches';
   end if;
 
   v_trimmed := trim(p_name);
   if char_length(v_trimmed) < 2 then
-    raise exception 'Player name is too short';
+    raise exception 'Name is too short';
   end if;
 
   select id into v_sport_id from sports where slug = p_sport_slug;
@@ -192,36 +197,32 @@ begin
   v_slug := slugify_entity_name(v_trimmed);
   v_norm := normalize_entity_name(v_trimmed);
 
-  -- 1. exact slug within sport
   select * into v_entity
   from entities e
-  where e.sport_id = v_sport_id and e.type = 'player' and e.slug = v_slug
+  where e.sport_id = v_sport_id and e.type = p_entity_type and e.slug = v_slug
   limit 1;
 
-  -- 2. exact normalized name
   if v_entity.id is null then
     select * into v_entity
     from entities e
-    where e.sport_id = v_sport_id and e.type = 'player'
+    where e.sport_id = v_sport_id and e.type = p_entity_type
       and normalize_entity_name(e.name) = v_norm
     limit 1;
   end if;
 
-  -- 3. alias match
   if v_entity.id is null then
     select e.* into v_entity
     from entity_aliases a
     join entities e on e.id = a.entity_id
-    where e.sport_id = v_sport_id and e.type = 'player'
+    where e.sport_id = v_sport_id and e.type = p_entity_type
       and a.normalized_alias = v_norm
     limit 1;
   end if;
 
-  -- 4. nickname / partial: input contained in canonical name or vice versa
   if v_entity.id is null and char_length(v_norm) >= 4 then
     select * into v_entity
     from entities e
-    where e.sport_id = v_sport_id and e.type = 'player'
+    where e.sport_id = v_sport_id and e.type = p_entity_type
       and (
         normalize_entity_name(e.name) like '%' || v_norm || '%'
         or v_norm like '%' || normalize_entity_name(e.name) || '%'
@@ -231,7 +232,6 @@ begin
   end if;
 
   if v_entity.id is not null then
-    -- record the user's spelling as an alias when it differs
     if normalize_entity_name(v_entity.name) <> v_norm then
       insert into entity_aliases (entity_id, alias, normalized_alias, created_by)
       values (v_entity.id, v_trimmed, v_norm, v_user)
@@ -243,11 +243,10 @@ begin
     return;
   end if;
 
-  -- no match — create user-submitted player
   insert into entities (
     sport_id, name, slug, type, status, primary_color, secondary_color, created_by
   ) values (
-    v_sport_id, v_trimmed, v_slug, 'player', 'user',
+    v_sport_id, v_trimmed, v_slug, p_entity_type, 'user',
     coalesce(nullif(trim(p_primary_color), ''), '#177a3d'),
     coalesce(nullif(trim(p_secondary_color), ''), '#1a1e1c'),
     v_user
@@ -257,6 +256,26 @@ begin
   return query
   select v_entity.id, false, v_entity.slug, v_entity.name;
 end $$;
+
+-- backward-compatible alias
+create or replace function resolve_or_create_player(
+  p_sport_slug text,
+  p_name text,
+  p_primary_color text default '#177a3d',
+  p_secondary_color text default '#1a1e1c'
+) returns table (
+  entity_id uuid,
+  matched_existing boolean,
+  entity_slug text,
+  entity_name text
+)
+language sql security definer set search_path = public as $$
+  select * from resolve_or_create_person(
+    p_sport_slug, p_name, 'player', p_primary_color, p_secondary_color
+  );
+$$;
+
+-- legacy function body replaced above — kept as wrapper only
 
 -- report a comment without owning it (security definer RPC)
 create or replace function report_comment(comment_id uuid) returns void
