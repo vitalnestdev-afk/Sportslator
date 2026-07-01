@@ -3,6 +3,8 @@ import { entities, comparisons } from "./seed-data.mjs";
 import { writeFileSync } from "node:fs";
 
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+const qn = (v) => (v == null || v === "" ? "null" : q(v));
+
 let sql = "-- generated seed\n";
 
 for (const s of sports)
@@ -11,9 +13,10 @@ for (const s of sports)
 for (const [sport, name, slug, p, sec] of entities)
   sql += `insert into entities (sport_id, name, slug, type, status, primary_color, secondary_color) select id, ${q(name)}, ${q(slug)}, 'club', 'seed', ${q(p)}, ${q(sec)} from sports where slug=${q(sport)} on conflict (sport_id, slug) do nothing;\n`;
 
-for (const [sport, name, slug, p, sec, type, era] of people) {
+for (const row of people) {
+  const [sport, name, slug, p, sec, type, era, disambiguator] = row;
   const eraSql = era ? `${q(era)}::player_era` : "null";
-  sql += `insert into entities (sport_id, name, slug, type, status, era, primary_color, secondary_color) select id, ${q(name)}, ${q(slug)}, ${q(type)}, 'seed', ${eraSql}, ${q(p)}, ${q(sec)} from sports where slug=${q(sport)} on conflict (sport_id, slug) do nothing;\n`;
+  sql += `insert into entities (sport_id, name, slug, type, status, era, disambiguator, primary_color, secondary_color) select id, ${q(name)}, ${q(slug)}, ${q(type)}, 'seed', ${eraSql}, ${qn(disambiguator)}, ${q(p)}, ${q(sec)} from sports where slug=${q(sport)} on conflict (sport_id, slug) do nothing;\n`;
 }
 
 for (const [a, b, verdict, dims] of comparisons) {
@@ -27,7 +30,8 @@ writeFileSync("seed.sql", sql);
 
 const bySport = {};
 const byType = {};
-for (const [sport, , , , , type] of people) {
+for (const row of people) {
+  const [sport, , , , , type] = row;
   bySport[sport] = (bySport[sport] ?? 0) + 1;
   byType[type] = (byType[type] ?? 0) + 1;
 }

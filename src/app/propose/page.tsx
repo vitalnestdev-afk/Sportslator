@@ -5,8 +5,8 @@ import type { Entity } from "@/lib/types";
 
 export default async function ProposePage() {
   const supabase = await supabaseServer();
-  const [{ data: entities }, { data: sports }] = await Promise.all([
-    supabase.from("entities").select("*").order("name"),
+  const [{ data: clubs }, { data: sports }] = await Promise.all([
+    supabase.from("entities").select("*").eq("type", "club").order("name"),
     supabase.from("sports").select("*"),
   ]);
   return (
@@ -16,11 +16,11 @@ export default async function ProposePage() {
         <h1 className="font-display text-4xl mt-10">New take</h1>
         <p className="mt-2 text-ink/70">
           Pick two clubs, players, or coaches — any sport — and make the case
-          across all six dimensions. It goes live immediately; the crowd decides
-          if you&apos;re right.
+          across all six dimensions. Search the full roster of 100,000+ stars.
+          It goes live immediately; the crowd decides if you&apos;re right.
         </p>
         <ProposeForm
-          entities={(entities ?? []) as Entity[]}
+          clubs={(clubs ?? []) as Entity[]}
           sports={sports ?? []}
         />
       </main>

@@ -9,6 +9,7 @@ export type Entity = {
   type: EntityType;
   status: EntityStatus;
   era: PersonEra | null;
+  disambiguator: string | null;
   primary_color: string;
   secondary_color: string;
   sport_id: string;
@@ -26,6 +27,7 @@ export type ResolvePersonResult = {
   matched_existing: boolean;
   entity_slug: string;
   entity_name: string;
+  entity_disambiguator?: string | null;
 };
 
 /** @deprecated use ResolvePersonResult */
@@ -41,6 +43,18 @@ export type LeaderboardRow = {
   slug: string;
   verdict_text: string;
   status: string;
+  created_at: string;
+  agrees: number;
+  disagrees: number;
+  net: number;
+  entity_a: Entity;
+  entity_b: Entity;
+};
+
+export type UserTakeRow = {
+  id: string;
+  slug: string;
+  verdict_text: string;
   created_at: string;
   agrees: number;
   disagrees: number;
@@ -76,6 +90,11 @@ const TYPE_LABELS: Record<EntityType, string> = {
   coach: "coach",
 };
 
+export function entityDisplayName(e: Pick<Entity, "name" | "disambiguator">): string {
+  if (e.disambiguator?.trim()) return `${e.name} (${e.disambiguator})`;
+  return e.name;
+}
+
 export function entityLabel(e: Entity, sportName?: string): string {
   const kind = TYPE_LABELS[e.type];
   const era =
@@ -85,7 +104,7 @@ export function entityLabel(e: Entity, sportName?: string): string {
         : " · historic"
       : "";
   const sport = sportName ? ` (${sportName})` : "";
-  return `${e.name}${sport} · ${kind}${era}`;
+  return `${entityDisplayName(e)}${sport} · ${kind}${era}`;
 }
 
 export function entityKindLabel(type: EntityType): string {

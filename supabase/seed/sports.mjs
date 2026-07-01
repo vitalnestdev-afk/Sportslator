@@ -8,4 +8,7 @@ export const sports = [
   { slug: "tennis", name: "Tennis" },
   { slug: "golf", name: "Golf" },
   { slug: "mlb", name: "MLB" },
+  { slug: "rugby", name: "Rugby" },
+  { slug: "mma", name: "MMA" },
+  { slug: "boxing", name: "Boxing" },
 ];

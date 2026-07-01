@@ -17,14 +17,18 @@ const DIMENSION_HINTS: Record<string, string> = {
 };
 
 export function ProposeForm({
-  entities: initialEntities,
+  clubs,
   sports,
 }: {
-  entities: Entity[];
+  clubs: Entity[];
   sports: Sport[];
 }) {
   const router = useRouter();
-  const [entities, setEntities] = useState(initialEntities);
+  const [entityCache, setEntityCache] = useState<Map<string, Entity>>(() => {
+    const m = new Map<string, Entity>();
+    for (const c of clubs) m.set(c.id, c);
+    return m;
+  });
   const [a, setA] = useState("");
   const [b, setB] = useState("");
   const [verdict, setVerdict] = useState("");
@@ -33,9 +37,7 @@ export function ProposeForm({
   const [error, setError] = useState<string | null>(null);
 
   function addEntity(entity: Entity) {
-    setEntities((prev) =>
-      prev.some((e) => e.id === entity.id) ? prev : [...prev, entity]
-    );
+    setEntityCache((prev) => new Map(prev).set(entity.id, entity));
   }
 
   async function submit(e: React.FormEvent) {
@@ -48,8 +50,21 @@ export function ProposeForm({
       router.push(`/signin?next=/propose`);
       return;
     }
-    const ea = entities.find((x) => x.id === a)!;
-    const eb = entities.find((x) => x.id === b)!;
+
+    const resolveEntity = async (id: string) => {
+      if (entityCache.has(id)) return entityCache.get(id)!;
+      const { data } = await supabase.from("entities").select("*").eq("id", id).single();
+      return data as Entity;
+    };
+
+    const ea = await resolveEntity(a);
+    const eb = await resolveEntity(b);
+    if (!ea || !eb) {
+      setError("Couldn't resolve selected sides. Try again.");
+      setBusy(false);
+      return;
+    }
+
     let slug = `${ea.slug}-${eb.slug}`;
     const { data: clash } = await supabase
       .from("comparisons")
@@ -90,6 +105,7 @@ export function ProposeForm({
         return;
       }
     }
+    setBusy(false);
     router.push(`/c/${slug}`);
   }
 
@@ -106,7 +122,7 @@ export function ProposeForm({
         <EntityPicker
           value={a}
           onChange={setA}
-          entities={entities}
+          clubs={clubs}
           sports={sports}
           label="this side…"
           excludeId={b}
@@ -116,7 +132,7 @@ export function ProposeForm({
         <EntityPicker
           value={b}
           onChange={setB}
-          entities={entities}
+          clubs={clubs}
           sports={sports}
           label="…is this side"
           excludeId={a}

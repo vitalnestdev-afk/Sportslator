@@ -15,6 +15,9 @@ export function Masthead() {
           <Link href="/players" className="font-score text-xs underline hover:text-pitch">
             stars
           </Link>
+          <Link href="/my/takes" className="font-score text-xs underline hover:text-pitch">
+            my takes
+          </Link>
           <Link href="/propose" className="font-score text-xs underline hover:text-pitch">
             new take
           </Link>

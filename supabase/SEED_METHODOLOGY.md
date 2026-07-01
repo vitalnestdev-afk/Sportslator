@@ -1,97 +1,81 @@
 # Seed roster methodology
 
-How the Sportslator people database was built — what sports were included, how stars were selected, and how the data is organised.
+How the Sportslator people database is built, maintained, and deployed.
 
-## Sport selection (9 total)
+## Scale (current generation)
 
-Sports were chosen by cross-referencing **global viewership**, **star-power density** (how many household names exist), and **cross-sport comparison potential** (fans already argue equivalences across these worlds).
+| Layer | Count | Source |
+|-------|------:|--------|
+| **Total people** | ~100,600 | curated + open-data bulk |
+| Football players | ~48,400 | Transfermarkt datasets |
+| MLB players | ~20,400 | Lahman / Baseball Databank |
+| NFL players | ~25,100 | nflverse |
+| NBA players | ~6,300 | nba_api static registry |
+| Curated (all sports) | ~880 | hand-picked stars + coaches |
+| Clubs | 47 | original Sportslator seed |
+| Sports | 12 | see below |
 
-| Sport | Slug | Rationale |
-|-------|------|-----------|
-| Football | `football` | Largest global sport; anchor sport for the product |
-| NBA | `nba` | Original cross-sport pair with football |
-| NFL | `nfl` | #1 US sport by revenue and viewership |
-| NHL | `nhl` | Major North American league with deep legend tier |
-| Cricket | `cricket` | ~2.5B fan base; dominant in India, UK, Australia, Pakistan |
-| Formula 1 | `f1` | Premium global individual sport; driver personalities drive fandom |
-| Tennis | `tennis` | Top-tier individual sport (Open Era GOAT debates) |
-| Golf | `golf` | Major individual sport with generational icons (Nicklaus, Tiger) |
-| MLB | `mlb` | Historic American institution; distinct from NFL/NBA culturally |
+## Sport list (12)
 
-Sports **not** included in v1 of this expansion (candidates for a future pass): rugby union, boxing/UFC, athletics/Olympics, esports.
+Football, NBA, NFL, NHL, Cricket, F1, Tennis, Golf, MLB, Rugby, MMA, Boxing.
 
-## Entity types
+## Open-data import pipeline
 
-| Type | Covers |
-|------|--------|
-| `player` | Athletes, drivers, golfers, cricketers |
-| `coach` | Football managers, NBA/NFL/MLB/NHL head coaches, F1 team principals |
-| `club` | Teams/franchises (existing seed only) |
+Bulk rosters are generated from public datasets — not scraped live at runtime.
 
-People who played **and** managed (e.g. Zidane, Cruyff) appear as **separate entities** with distinct slugs (`zinedine-zidane` as player, `zinedine-zidane-manager` as coach) so takes can compare them in either role.
+| Sport | Dataset | URL / project |
+|-------|---------|---------------|
+| Football | Transfermarkt datasets | `transfermarkt-datasets` on GitHub / R2 CSV |
+| MLB | Lahman Baseball Databank | `cBrou/baseballdatabank` People.csv |
+| NFL | nflverse player registry | `nflverse/nflverse-data` releases |
+| NBA | nba_api static player list | `swar/nba_api` stats/library/data.py |
 
-## Selection criteria per person
+### Regenerate bulk imports
 
-Each roster entry was chosen if they met **at least one** of:
+```bash
+npm run seed:import    # fetch open data → supabase/seed/bulk/*.mjs
+npm run seed:validate  # check for duplicate slugs
+npm run seed:gen       # write supabase/seed.sql (~30MB)
+```
 
-1. **Global or national icon** — name recognition beyond hardcore fans
-2. **GOAT-tier or generational** — central to "best ever" debates in their sport
-3. **Currently elite** — top-10 calibre in 2024–2026 seasons
-4. **Historic anchor** — defines an era (Bradman, Gretzky, Senna, Ferguson)
+Curated stars in `supabase/seed/*.mjs` take precedence over bulk rows on slug collision.
 
-Target roster size per sport:
+## Disambiguation
 
-| Sport | Players | Coaches | Notes |
-|-------|---------|---------|-------|
-| Football | 55 | 35 | Existing player seed + new managers |
-| NBA | 55 | 30 | Existing player seed + head coaches |
-| NFL | 65 | 25 | QBs weighted heavily (face of the league) |
-| NHL | 65 | 25 | Balanced forwards, D, goalies |
-| Cricket | 75 | 25 | All major nations represented |
-| F1 | 55 | 15 | Drivers + team principals (Newey, Wolff, etc.) |
-| Tennis | 60 | — | Individual sport; no coach seed |
-| Golf | 50 | — | Individual sport; no coach seed |
-| MLB | 65 | 25 | Players + managers |
+Many players share names within a sport. We store an optional **`disambiguator`** field:
 
-**Total: ~725 people** (545 players + 180 coaches) as of this seed generation.
+- Shown in UI as `Name (Team)` — e.g. `John Smith (Arsenal)`
+- Used in slug generation when names collide: `john-smith-arsenal`
+- Bulk import auto-assigns team / debut year / career span as disambiguator
+- User submissions can provide a team/club identifier in the add-person form
+- Dedup RPC only auto-matches by name alone when the name is **unique within that sport**
+
+## Selection criteria (curated tier)
+
+Curated entries (non-bulk) are chosen for global icon status, GOAT-tier legacy, current elite level, or era-defining impact. See per-sport files in `supabase/seed/`.
+
+## Community additions
+
+`resolve_or_create_person` RPC handles user-submitted players/coaches with the same dedup rules plus alias linking.
+
+## Deploy
+
+1. Run migrations through `004_disambiguator_bulk.sql`
+2. Apply `supabase/seed.sql` (large — ~100k INSERTs, consider running via `psql` not the Supabase SQL editor UI)
+3. Optional: re-run import pipeline quarterly to refresh active rosters
 
 ## File structure
 
 ```
 supabase/
+  import/
+    build-bulk.mjs     ← fetch open datasets
+    lib.mjs            ← CSV parse, slugify, collision handling
   seed/
-    sports.mjs       — sport definitions
-    helpers.mjs      — person() row builder + colour defaults
-    index.mjs        — merges all rosters
-    nfl.mjs          — per-sport roster files
-    nhl.mjs
-    cricket.mjs
-    f1.mjs
-    tennis.mjs
-    golf.mjs
-    mlb.mjs
-    coaches.mjs      — football + NBA coaches
-  players-seed.mjs   — legacy football + NBA players (merged via index)
-  gen-seed-sql.mjs   — generates seed.sql
-  validate-seed.mjs  — duplicate slug checker
+    bulk/              ← generated bulk modules (git-tracked)
+    index.mjs          ← merges curated + bulk
+    *.mjs              ← per-sport curated rosters
+  gen-seed-sql.mjs
+  validate-seed.mjs
+  seed.sql             ← generated (~30MB)
 ```
-
-Row format: `[sportSlug, name, slug, primaryColor, secondaryColor, type, era]`
-
-## Community additions & dedup
-
-User submissions use the same `resolve_or_create_person` RPC as before:
-
-- Match by slug, exact name, alias, or partial name **within the same sport and type**
-- Duplicate spellings become aliases on the canonical entity
-- All takes referencing either spelling share the same `entity_id`
-
-## Regenerating after edits
-
-```bash
-cd supabase
-node validate-seed.mjs   # check for duplicate slugs
-node gen-seed-sql.mjs    # write seed.sql
-```
-
-Then apply `seed.sql` to Supabase (after migration `003_multi_sport_coaches.sql`).

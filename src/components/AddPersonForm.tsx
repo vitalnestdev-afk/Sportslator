@@ -5,7 +5,7 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { ensureUser } from "@/lib/ensure-user";
 import { scorePlayerMatch } from "@/lib/entities";
 import type { Entity, EntityType, ResolvePersonResult, Sport } from "@/lib/types";
-import { entityKindLabel } from "@/lib/types";
+import { entityDisplayName, entityKindLabel } from "@/lib/types";
 
 type Props = {
   sport: Sport;
@@ -23,6 +23,7 @@ export function AddPersonForm({
   onCancel,
 }: Props) {
   const [name, setName] = useState("");
+  const [disambiguator, setDisambiguator] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResolvePersonResult | null>(null);
@@ -65,6 +66,7 @@ export function AddPersonForm({
       p_sport_slug: sport.slug,
       p_name: name.trim(),
       p_entity_type: entityType,
+      p_disambiguator: disambiguator.trim() || null,
     });
 
     setBusy(false);
@@ -96,6 +98,7 @@ export function AddPersonForm({
       type: entityType,
       status: row.matched_existing ? "seed" : "user",
       era: null,
+      disambiguator: row.entity_disambiguator ?? (disambiguator.trim() || null),
       primary_color: "#177a3d",
       secondary_color: "#1a1e1c",
       sport_id: sport.id,
@@ -111,9 +114,9 @@ export function AddPersonForm({
         Suggest a {sport.name} {kind}
       </p>
       <p className="text-sm text-ink/70">
-        Missing someone? Add them here. If someone already suggested the same{" "}
-        {kind} under a different spelling, we&apos;ll link your take to the
-        original.
+        Add a team or club in the identifier field if the name is shared by
+        more than one person — we&apos;ll link duplicate suggestions to the same
+        entry.
       </p>
       <input
         value={name}
@@ -121,15 +124,18 @@ export function AddPersonForm({
           setName(e.target.value);
           setResult(null);
         }}
-        placeholder={
-          entityType === "coach"
-            ? "e.g. Pep Guardiola, Popovich…"
-            : "e.g. Mahomes, Kohli, Verstappen…"
-        }
+        placeholder="Full name"
         maxLength={80}
         required
         autoFocus
         className="w-full border-2 border-ink bg-chalk px-3 py-2 rounded-[2px] focus:outline-none focus:border-pitch"
+      />
+      <input
+        value={disambiguator}
+        onChange={(e) => setDisambiguator(e.target.value)}
+        placeholder="Identifier (team, era, club…) — optional unless name is shared"
+        maxLength={80}
+        className="w-full border-2 border-line bg-chalk px-3 py-2 rounded-[2px] focus:outline-none focus:border-pitch"
       />
 
       {suggestions.length > 0 && !result && (
@@ -145,7 +151,7 @@ export function AddPersonForm({
                   onClick={() => onAdded(person)}
                   className="underline hover:text-pitch text-left"
                 >
-                  {person.name}
+                  {entityDisplayName(person)}
                   {person.status === "user" && (
                     <span className="text-ink/50"> · community-added</span>
                   )}
@@ -158,8 +164,9 @@ export function AddPersonForm({
 
       {result?.matched_existing && (
         <p className="text-sm text-pitch">
-          Matched existing {kind}: <strong>{result.entity_name}</strong>. Your
-          take will use the canonical entry.
+          Matched existing {kind}:{" "}
+          <strong>{entityDisplayName({ name: result.entity_name, disambiguator: result.entity_disambiguator ?? null })}</strong>.
+          Your take will use the canonical entry.
         </p>
       )}
 
@@ -185,5 +192,4 @@ export function AddPersonForm({
   );
 }
 
-/** @deprecated use AddPersonForm */
 export const AddPlayerForm = AddPersonForm;

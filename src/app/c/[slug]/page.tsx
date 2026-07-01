@@ -5,7 +5,7 @@ import { VoteButtons } from "@/components/VoteButtons";
 import { Comments } from "@/components/Comments";
 import { ShareButton } from "@/components/ShareButton";
 import { getComparison } from "@/lib/queries";
-import { DIMENSION_ORDER, DIMENSION_LABELS } from "@/lib/types";
+import { DIMENSION_ORDER, DIMENSION_LABELS, entityDisplayName } from "@/lib/types";
 import type { Metadata } from "next";
 
 export const revalidate = 0;
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const c = await getComparison(slug);
   if (!c) return {};
-  const title = `${c.entity_a.name} ≈ ${c.entity_b.name} — Sportslator`;
+  const title = `${entityDisplayName(c.entity_a)} ≈ ${entityDisplayName(c.entity_b)} — Sportslator`;
   return {
     title,
     description: c.verdict_text,
