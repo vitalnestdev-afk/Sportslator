@@ -10,6 +10,7 @@ import type {
   UserTakeRow,
   Season,
   Competition,
+  MembershipClub,
 } from "./types";
 import { formatEquivalenceSentence } from "./equivalence";
 
@@ -320,4 +321,197 @@ export async function getComparison(slug: string) {
     season: Season | null;
     competition: Competition | null;
   };
+}
+
+export async function getClubs(opts?: {
+  sportSlug?: string;
+  q?: string;
+  limit?: number;
+}): Promise<Entity[]> {
+  if (!configured()) return [];
+  const supabase = await supabaseServer();
+  let q = supabase
+    .from("entities")
+    .select("*")
+    .eq("type", "club")
+    .order("name")
+    .limit(opts?.limit ?? 500);
+
+  if (opts?.sportSlug) {
+    const { data: sport } = await supabase
+      .from("sports")
+      .select("id")
+      .eq("slug", opts.sportSlug)
+      .single();
+    if (sport) q = q.eq("sport_id", sport.id);
+  }
+  if (opts?.q?.trim()) {
+    q = q.ilike("name", `%${opts.q.replace(/[%_]/g, "")}%`);
+  }
+  const { data } = await q;
+  return (data ?? []) as Entity[];
+}
+
+export async function getMembershipClubs(
+  personId: string,
+  limit = 14
+): Promise<MembershipClub[]> {
+  if (!configured()) return [];
+  const supabase = await supabaseServer();
+  const { data: rows } = await supabase
+    .from("entity_memberships")
+    .select("is_primary, season_start, season_end, club_id")
+    .eq("person_id", personId)
+    .order("is_primary", { ascending: false })
+    .limit(limit);
+
+  if (!rows?.length) return [];
+  const clubIds = rows.map((r) => r.club_id);
+  const { data: clubs } = await supabase
+    .from("entities")
+    .select("*")
+    .in("id", clubIds);
+
+  const byId = new Map((clubs as Entity[] | null)?.map((c) => [c.id, c]));
+  return rows
+    .map((r) => {
+      const club = byId.get(r.club_id);
+      if (!club) return null;
+      return {
+        ...club,
+        is_primary: r.is_primary,
+        season_start: r.season_start,
+        season_end: r.season_end,
+      };
+    })
+    .filter(Boolean) as MembershipClub[];
+}
+
+async function hydrateLeaderboardRows(
+  rows: Record<string, unknown>[]
+): Promise<LeaderboardRow[]> {
+  if (!rows.length) return [];
+  const supabase = await supabaseServer();
+  const compIds = rows.map((r) => r.id as string);
+  const { data: memberRows } = await supabase
+    .from("comparison_members")
+    .select("comparison_id, entity_id, position")
+    .in("comparison_id", compIds)
+    .order("position");
+
+  const entityIds = new Set<string>();
+  for (const r of rows) {
+    entityIds.add(r.entity_a_id as string);
+    entityIds.add(r.entity_b_id as string);
+  }
+  for (const m of memberRows ?? []) entityIds.add(m.entity_id);
+
+  const { data: entities } = await supabase
+    .from("entities")
+    .select("*")
+    .in("id", [...entityIds]);
+
+  const byId = new Map((entities as Entity[] | null)?.map((e) => [e.id, e]));
+  const membersByComp = new Map<string, Entity[]>();
+  for (const m of memberRows ?? []) {
+    const entity = byId.get(m.entity_id);
+    if (!entity) continue;
+    const list = membersByComp.get(m.comparison_id) ?? [];
+    list.push(entity);
+    membersByComp.set(m.comparison_id, list);
+  }
+
+  return rows
+    .map((r) => {
+      const members =
+        membersByComp.get(r.id as string) ??
+        ([byId.get(r.entity_a_id as string), byId.get(r.entity_b_id as string)].filter(
+          Boolean
+        ) as Entity[]);
+      return {
+        ...r,
+        members,
+        entity_a: members[0] ?? byId.get(r.entity_a_id as string)!,
+        entity_b: members[1] ?? byId.get(r.entity_b_id as string)!,
+      } as LeaderboardRow;
+    })
+    .filter((r) => r.entity_a && r.entity_b);
+}
+
+export async function getTakes(opts?: {
+  sportSlug?: string;
+  seasonId?: string;
+  competitionId?: string;
+  entityId?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ rows: LeaderboardRow[]; total: number }> {
+  if (!configured()) return { rows: [], total: 0 };
+  const supabase = await supabaseServer();
+  const limit = opts?.limit ?? 40;
+  const offset = opts?.offset ?? 0;
+
+  let comparisonIds: string[] | null = null;
+  if (opts?.entityId) {
+    const { data: mem } = await supabase
+      .from("comparison_members")
+      .select("comparison_id")
+      .eq("entity_id", opts.entityId);
+    comparisonIds = [...new Set((mem ?? []).map((m) => m.comparison_id))];
+    if (!comparisonIds.length) return { rows: [], total: 0 };
+  }
+
+  let q = supabase.from("leaderboard").select("*", { count: "exact" });
+  if (comparisonIds) q = q.in("id", comparisonIds);
+  if (opts?.seasonId) q = q.eq("season_id", opts.seasonId);
+  if (opts?.competitionId) q = q.eq("competition_id", opts.competitionId);
+  if (opts?.q?.trim()) {
+    q = q.ilike("verdict_text", `%${opts.q.replace(/[%_]/g, "")}%`);
+  }
+
+  const { data: raw, count } = await q
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  let rows = await hydrateLeaderboardRows(raw ?? []);
+
+  if (opts?.sportSlug) {
+    const { data: sport } = await supabase
+      .from("sports")
+      .select("id")
+      .eq("slug", opts.sportSlug)
+      .single();
+    if (sport) {
+      rows = rows.filter((r) =>
+        (r.members ?? [r.entity_a, r.entity_b]).some((e) => e.sport_id === sport.id)
+      );
+    }
+  }
+
+  rows.sort(
+    (a, b) =>
+      b.net - a.net ||
+      b.agrees + b.disagrees - (a.agrees + a.disagrees) ||
+      a.slug.localeCompare(b.slug)
+  );
+
+  return { rows, total: count ?? rows.length };
+}
+
+export async function searchEntitiesForFilter(
+  q: string,
+  limit = 20
+): Promise<Entity[]> {
+  if (!configured() || !q.trim()) return [];
+  const supabase = await supabaseServer();
+  const { data } = await supabase
+    .from("entities")
+    .select("*")
+    .or(
+      `name.ilike.%${q.replace(/[%_]/g, "")}%,disambiguator.ilike.%${q.replace(/[%_]/g, "")}%`
+    )
+    .order("name")
+    .limit(limit);
+  return (data ?? []) as Entity[];
 }

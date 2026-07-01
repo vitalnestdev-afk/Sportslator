@@ -9,9 +9,12 @@ export function Masthead() {
           Sportslator
         </Link>
         <span className="font-score text-xs text-ink/60 hidden sm:inline">
-          9 sports · clubs &amp; stars
+          12 sports · 800+ clubs · 120k stars
         </span>
         <nav className="flex items-center gap-4">
+          <Link href="/takes" className="font-score text-xs underline hover:text-pitch">
+            takes
+          </Link>
           <Link href="/players" className="font-score text-xs underline hover:text-pitch">
             stars
           </Link>

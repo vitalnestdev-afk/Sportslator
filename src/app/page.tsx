@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Masthead } from "@/components/Masthead";
 import { LeagueTable } from "@/components/LeagueTable";
 import { getLeaderboard } from "@/lib/queries";
@@ -8,7 +9,6 @@ export const revalidate = 30;
 export default async function Home() {
   const all = await getLeaderboard();
   const eligible = all.filter((r) => r.agrees + r.disagrees >= MIN_VOTES);
-  // Until the corpus has votes, show everything in the table rather than an empty top flight.
   const table = eligible.length >= 8 ? eligible : all;
   const nonLeague = eligible.length >= 8
     ? all.filter((r) => r.agrees + r.disagrees < MIN_VOTES)
@@ -18,6 +18,18 @@ export default async function Home() {
     <>
       <Masthead />
       <main className="mx-auto w-full max-w-5xl px-4 pb-16 flex-1">
+        <div className="mt-8 flex items-baseline justify-between gap-4">
+          <p className="text-ink/70 text-sm max-w-xl">
+            Equivalence takes ranked like a league table — who&apos;s right about
+            who equals who?
+          </p>
+          <Link
+            href="/takes"
+            className="font-score text-xs underline hover:text-pitch shrink-0"
+          >
+            browse &amp; filter all takes →
+          </Link>
+        </div>
         {all.length === 0 ? (
           <p className="mt-16 text-center text-ink/70">
             The table is empty. Either the season hasn&apos;t started or the

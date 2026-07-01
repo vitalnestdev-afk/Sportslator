@@ -1,6 +1,7 @@
 "use client";
 
 import { EntityPicker } from "./EntityPicker";
+import { MembershipClubChips } from "./MembershipClubChips";
 import type { Entity, Sport } from "@/lib/types";
 import {
   MAX_EQUIVALENCE_SLOTS,
@@ -13,6 +14,7 @@ type Props = {
   clubs: Entity[];
   sports: Sport[];
   onEntityAdded: (entity: Entity) => void;
+  entityCache: Map<string, Entity>;
 };
 
 export function EquivalenceBuilder({
@@ -21,6 +23,7 @@ export function EquivalenceBuilder({
   clubs,
   sports,
   onEntityAdded,
+  entityCache,
 }: Props) {
   function setSlot(index: number, id: string) {
     const next = [...slots];
@@ -39,6 +42,20 @@ export function EquivalenceBuilder({
   }
 
   const usedIds = new Set(slots.filter(Boolean));
+
+  const hintPersonId = (() => {
+    for (const id of slots) {
+      if (!id) continue;
+      const e = entityCache.get(id);
+      if (e && (e.type === "player" || e.type === "coach")) return id;
+    }
+    return "";
+  })();
+
+  function pickClubForSlot(index: number, entity: Entity) {
+    onEntityAdded(entity);
+    setSlot(index, entity.id);
+  }
 
   return (
     <div className="space-y-3">
@@ -74,6 +91,16 @@ export function EquivalenceBuilder({
           </div>
         ))}
       </div>
+      {hintPersonId && (
+        <MembershipClubChips
+          personId={hintPersonId}
+          excludeIds={[...usedIds]}
+          onPick={(club) => {
+            const emptyIdx = slots.findIndex((s) => !s);
+            if (emptyIdx >= 0) pickClubForSlot(emptyIdx, club);
+          }}
+        />
+      )}
       {slots.length < MAX_EQUIVALENCE_SLOTS && (
         <button
           type="button"

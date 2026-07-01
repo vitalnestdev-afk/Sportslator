@@ -83,27 +83,48 @@ Vercel Hobby allows limited cron jobs; do **not** add extra entries without upgr
 
 **Route:** `GET /api/cron/roster-sync` (optional `?force=1` to bypass lock)
 
-Apply migration `005_roster_sync_cron.sql` before first cron run.
+Apply migrations through `007_entity_memberships.sql` before first cron run.
 
 ## Deploy
 
-1. Run migrations through `005_roster_sync_cron.sql`
-2. Apply `supabase/seed.sql` (large — ~120k INSERTs, use `psql`)
-3. Set `CRON_SECRET` on Vercel — daily cron handles incremental refresh
+1. Run migrations through `007_entity_memberships.sql`
+2. Apply `supabase/seed.sql` (~121k people + ~980 clubs)
+3. Apply `supabase/memberships.sql` separately (~132k career links, ~60MB)
+4. Set `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` on Vercel
+
+## Expansion pipeline
+
+```bash
+npm run seed:expand   # full rebuild: competitions, clubs, rosters, memberships, seed.sql
+```
+
+| Script | Output |
+|--------|--------|
+| `seed:competitions` | 114 competitions (Transfermarkt + all sports) |
+| `seed:clubs-tm` | ~980 clubs (817 football from Transfermarkt) |
+| `seed:memberships` | ~132k player↔club links |
+| `seed:import` | ~121k players/coaches |
+
+See `docs/EXPANSION_PLAN.md` for research and rationale.
 
 ## File structure
 
 ```
 supabase/
   import/
-    build-bulk.mjs     ← fetch open datasets
-    roster-sync.mjs    ← daily cron upsert logic
-    lib.mjs            ← CSV parse, slugify, collision handling
+    build-bulk.mjs
+    build-competitions.mjs
+    build-clubs-tm.mjs
+    build-memberships.mjs
+    roster-sync.mjs
+    lib.mjs
   seed/
-    bulk/              ← generated bulk modules (git-tracked)
-    index.mjs          ← merges curated + bulk
-    *.mjs              ← per-sport curated rosters
+    bulk/              ← generated bulk modules
+    clubs.mjs          ← merged curated + TM clubs
+    competitions.mjs   ← generated competitions
+  memberships.sql      ← apply after seed.sql
   gen-seed-sql.mjs
-  validate-seed.mjs
-  seed.sql             ← generated (~30MB)
+  seed.sql             ← generated (~38MB)
+docs/
+  EXPANSION_PLAN.md
 ```
