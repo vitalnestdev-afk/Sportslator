@@ -351,3 +351,61 @@ from comparisons c
 left join votes v on v.comparison_id = c.id
 where c.status <> 'hidden'
 group by c.id;
+
+-- singleton lock for daily roster cron (max 1 run / 24h)
+create table roster_sync_state (
+  id int primary key default 1 check (id = 1),
+  last_run_at timestamptz,
+  last_run_status text,
+  last_run_summary jsonb
+);
+
+insert into roster_sync_state (id) values (1) on conflict (id) do nothing;
+alter table roster_sync_state enable row level security;
+
+create or replace function try_acquire_roster_sync_lock(p_force boolean default false)
+returns table(acquired boolean, reason text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_cutoff timestamptz := now() - interval '24 hours';
+  v_updated roster_sync_state%rowtype;
+  v_current roster_sync_state%rowtype;
+begin
+  insert into roster_sync_state (id) values (1) on conflict (id) do nothing;
+
+  if p_force then
+    update roster_sync_state
+    set
+      last_run_at = now(),
+      last_run_status = 'running',
+      last_run_summary = jsonb_build_object('started', now())
+    where id = 1
+    returning * into v_updated;
+
+    return query select true, null::text;
+    return;
+  end if;
+
+  update roster_sync_state
+  set
+    last_run_at = now(),
+    last_run_status = 'running',
+    last_run_summary = jsonb_build_object('started', now())
+  where id = 1
+    and (last_run_at is null or last_run_at <= v_cutoff)
+  returning * into v_updated;
+
+  if found then
+    return query select true, null::text;
+    return;
+  end if;
+
+  select * into v_current from roster_sync_state where id = 1;
+  return query select
+    false,
+    format('Last sync at %s; next eligible after 24h', v_current.last_run_at);
+end;
+$$;

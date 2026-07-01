@@ -92,6 +92,12 @@ export async function fetchText(url) {
   return res.text();
 }
 
+export async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Fetch failed ${url}: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchGzipCsv(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Fetch failed ${url}: ${res.status}`);

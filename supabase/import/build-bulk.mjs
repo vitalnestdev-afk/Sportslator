@@ -28,6 +28,12 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const bulkDir = join(__dir, "../seed/bulk");
 mkdirSync(bulkDir, { recursive: true });
 
+import {
+  fetchNhlPeople,
+  fetchF1People,
+  fetchCricketPeople,
+} from "./sources/extra-sports.mjs";
+
 const COLORS = {
   football: ["#177a3d", "#1a1e1c"],
   mlb: ["#041E42", "#BF0D3E"],
@@ -163,6 +169,27 @@ async function importNba() {
   return people.length;
 }
 
+async function importNhl() {
+  console.log("\n🏒 NHL (NHL Stats API)…");
+  const people = await fetchNhlPeople();
+  writeModule("nhl-bulk", "nhlBulk", people, "api.nhle.com stats/rest");
+  return people.length;
+}
+
+async function importF1() {
+  console.log("\n🏎️ F1 (Ergast / jolpi.ca)…");
+  const people = await fetchF1People();
+  writeModule("f1-bulk", "f1Bulk", people, "api.jolpi.ca/ergast/f1");
+  return people.length;
+}
+
+async function importCricket() {
+  console.log("\n🏏 Cricket (Cricsheet Register)…");
+  const people = await fetchCricketPeople();
+  writeModule("cricket-bulk", "cricketBulk", people, "cricsheet.org/register/people.csv");
+  return people.length;
+}
+
 async function main() {
   console.log("Building bulk roster imports…");
   const counts = {};
@@ -170,6 +197,9 @@ async function main() {
   counts.mlb = await importMlb();
   counts.nfl = await importNfl();
   counts.nba = await importNba();
+  counts.nhl = await importNhl();
+  counts.f1 = await importF1();
+  counts.cricket = await importCricket();
   console.log("\nDone:", counts);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   console.log(`Total bulk rows: ${total}`);

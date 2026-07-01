@@ -17,6 +17,9 @@ import { footballBulk } from "./bulk/football-bulk.mjs";
 import { mlbBulk } from "./bulk/mlb-bulk.mjs";
 import { nflBulk } from "./bulk/nfl-bulk.mjs";
 import { nbaBulk } from "./bulk/nba-bulk.mjs";
+import { nhlBulk } from "./bulk/nhl-bulk.mjs";
+import { f1Bulk } from "./bulk/f1-bulk.mjs";
+import { cricketBulk } from "./bulk/cricket-bulk.mjs";
 
 export { sports };
 
@@ -41,4 +44,7 @@ export const people = mergePeople(curated, [
   ...mlbBulk,
   ...nflBulk,
   ...nbaBulk,
+  ...nhlBulk,
+  ...f1Bulk,
+  ...cricketBulk,
 ]);
