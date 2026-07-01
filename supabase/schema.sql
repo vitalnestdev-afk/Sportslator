@@ -43,6 +43,25 @@ create table entity_aliases (
 create index entity_aliases_norm_idx on entity_aliases (normalized_alias);
 create index entities_person_name_idx on entities (sport_id, lower(name)) where type in ('player', 'coach');
 
+create table seasons (
+  id uuid primary key default gen_random_uuid(),
+  sport_id uuid not null references sports(id) on delete cascade,
+  label text not null,
+  slug text not null,
+  year_start int,
+  year_end int,
+  unique (sport_id, slug)
+);
+
+create table competitions (
+  id uuid primary key default gen_random_uuid(),
+  sport_id uuid not null references sports(id) on delete cascade,
+  name text not null,
+  slug text not null,
+  scope text not null default 'domestic',
+  unique (sport_id, slug)
+);
+
 create table comparisons (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
@@ -50,10 +69,24 @@ create table comparisons (
   entity_b_id uuid not null references entities(id),
   verdict_text text not null,
   status comparison_status not null default 'user',
+  season_id uuid references seasons(id) on delete set null,
+  competition_id uuid references competitions(id) on delete set null,
+  context_note text,
   created_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
   constraint distinct_entities check (entity_a_id <> entity_b_id)
 );
+
+create table comparison_members (
+  id uuid primary key default gen_random_uuid(),
+  comparison_id uuid not null references comparisons(id) on delete cascade,
+  entity_id uuid not null references entities(id) on delete cascade,
+  position smallint not null check (position >= 0),
+  unique (comparison_id, entity_id),
+  unique (comparison_id, position)
+);
+
+create index comparison_members_comp_idx on comparison_members (comparison_id, position);
 
 create table comparison_dimensions (
   id uuid primary key default gen_random_uuid(),
@@ -112,6 +145,9 @@ alter table entities enable row level security;
 alter table entity_aliases enable row level security;
 alter table comparisons enable row level security;
 alter table comparison_dimensions enable row level security;
+alter table comparison_members enable row level security;
+alter table seasons enable row level security;
+alter table competitions enable row level security;
 alter table votes enable row level security;
 alter table comments enable row level security;
 alter table profiles enable row level security;
@@ -121,6 +157,9 @@ create policy "read entities" on entities for select using (true);
 create policy "read aliases" on entity_aliases for select using (true);
 create policy "read comparisons" on comparisons for select using (status <> 'hidden');
 create policy "read dimensions" on comparison_dimensions for select using (true);
+create policy "read seasons" on seasons for select using (true);
+create policy "read competitions" on competitions for select using (true);
+create policy "read comparison members" on comparison_members for select using (true);
 create policy "read votes" on votes for select using (true);
 create policy "read comments" on comments for select using (not hidden);
 create policy "read profiles" on profiles for select using (true);
@@ -128,6 +167,11 @@ create policy "read profiles" on profiles for select using (true);
 create policy "insert own comparison" on comparisons for insert
   with check (auth.uid() = created_by and status = 'user');
 create policy "insert own dimensions" on comparison_dimensions for insert
+  with check (exists (
+    select 1 from comparisons c
+    where c.id = comparison_id and c.created_by = auth.uid()
+  ));
+create policy "insert own comparison members" on comparison_members for insert
   with check (exists (
     select 1 from comparisons c
     where c.id = comparison_id and c.created_by = auth.uid()
@@ -343,6 +387,7 @@ create or replace view leaderboard as
 select
   c.id, c.slug, c.verdict_text, c.status, c.created_at, c.created_by,
   c.entity_a_id, c.entity_b_id,
+  c.season_id, c.competition_id, c.context_note,
   count(v.id) filter (where v.value = 'agree')::int as agrees,
   count(v.id) filter (where v.value = 'disagree')::int as disagrees,
   (count(v.id) filter (where v.value = 'agree')

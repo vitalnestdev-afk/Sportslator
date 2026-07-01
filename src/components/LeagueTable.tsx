@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { fgOn } from "@/lib/colors";
-import type { LeaderboardRow } from "@/lib/types";
+import { membersLabel } from "@/lib/queries";
+import type { Entity, LeaderboardRow } from "@/lib/types";
 
-function Swatch({ row }: { row: LeaderboardRow }) {
+function Swatch({ members }: { members: Entity[] }) {
+  const a = members[0];
+  const b = members[1] ?? members[0];
   return (
     <span
       className="inline-block h-4 w-7 align-middle rounded-[2px] overflow-hidden relative"
@@ -10,12 +13,12 @@ function Swatch({ row }: { row: LeaderboardRow }) {
     >
       <span
         className="absolute inset-0"
-        style={{ background: row.entity_b.primary_color }}
+        style={{ background: b.primary_color }}
       />
       <span
         className="absolute inset-0"
         style={{
-          background: row.entity_a.primary_color,
+          background: a.primary_color,
           clipPath: "polygon(0 0, 60% 0, 40% 100%, 0 100%)",
         }}
       />
@@ -47,7 +50,7 @@ export function LeagueTable({
           <tr className="font-score text-xs text-ink/60 text-left">
             <th className="py-2 pr-2 w-8">#</th>
             <th className="py-2 pr-2 w-9"></th>
-            <th className="py-2 pr-2">matchup</th>
+            <th className="py-2 pr-2">equivalence</th>
             <th className="py-2 pr-2 text-right w-12">agr</th>
             <th className="py-2 pr-2 text-right w-12">dis</th>
             <th className="py-2 text-right w-14">net</th>
@@ -56,6 +59,7 @@ export function LeagueTable({
         <tbody>
           {rows.map((r, i) => {
             const pos = startPosition + i;
+            const members = r.members ?? [r.entity_a, r.entity_b];
             const zoneClass = !zones
               ? ""
               : i < 4
@@ -70,14 +74,14 @@ export function LeagueTable({
               >
                 <td className="py-2 pr-2 font-score">{pos}</td>
                 <td className="py-2 pr-2">
-                  <Swatch row={r} />
+                  <Swatch members={members} />
                 </td>
                 <td className="py-2 pr-2">
                   <Link
                     href={`/c/${r.slug}`}
                     className="font-display text-base hover:text-pitch"
                   >
-                    {r.entity_a.name} &asymp; {r.entity_b.name}
+                    {membersLabel(members)}
                   </Link>
                   <span className="hidden sm:inline text-ink/60">
                     {" "}

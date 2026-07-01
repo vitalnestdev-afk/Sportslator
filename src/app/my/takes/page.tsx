@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Masthead } from "@/components/Masthead";
 import { getMyTakes } from "@/lib/queries";
 import { supabaseServer } from "@/lib/supabase-server";
-import { entityDisplayName } from "@/lib/types";
+import { membersLabel } from "@/lib/queries";
 
 export default async function MyTakesPage() {
   const supabase = await supabaseServer();
@@ -42,8 +42,7 @@ export default async function MyTakesPage() {
                   className="block border-2 border-line bg-whitewash px-4 py-3 rounded-[2px] hover:border-pitch"
                 >
                   <p className="font-semibold">
-                    {entityDisplayName(t.entity_a)} &asymp;{" "}
-                    {entityDisplayName(t.entity_b)}
+                    {membersLabel(t.members ?? [t.entity_a, t.entity_b])}
                   </p>
                   <p className="mt-1 text-sm text-ink/80">{t.verdict_text}</p>
                   <p className="mt-2 font-score text-xs text-ink/50">

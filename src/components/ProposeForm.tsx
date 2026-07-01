@@ -1,11 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { ensureUser } from "@/lib/ensure-user";
-import type { Entity, Sport } from "@/lib/types";
+import {
+  equivalenceSlug,
+  formatEquivalenceSentence,
+  MIN_EQUIVALENCE_SLOTS,
+} from "@/lib/equivalence";
+import type { Competition, Entity, Season, Sport } from "@/lib/types";
 import { DIMENSION_ORDER, DIMENSION_LABELS } from "@/lib/types";
-import { EntityPicker } from "./EntityPicker";
+import { ContextSelectors } from "./ContextSelectors";
+import { EquivalenceBuilder } from "./EquivalenceBuilder";
 
 const DIMENSION_HINTS: Record<string, string> = {
   pedigree: "history, trophies, legacy, peak years",
@@ -19,9 +25,13 @@ const DIMENSION_HINTS: Record<string, string> = {
 export function ProposeForm({
   clubs,
   sports,
+  seasons,
+  competitions,
 }: {
   clubs: Entity[];
   sports: Sport[];
+  seasons: Season[];
+  competitions: Competition[];
 }) {
   const router = useRouter();
   const [entityCache, setEntityCache] = useState<Map<string, Entity>>(() => {
@@ -29,9 +39,13 @@ export function ProposeForm({
     for (const c of clubs) m.set(c.id, c);
     return m;
   });
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
+  const [slots, setSlots] = useState<string[]>(["", ""]);
+  const [scopeSport, setScopeSport] = useState("");
+  const [seasonId, setSeasonId] = useState("");
+  const [competitionId, setCompetitionId] = useState("");
+  const [contextNote, setContextNote] = useState("");
   const [verdict, setVerdict] = useState("");
+  const [verdictEdited, setVerdictEdited] = useState(false);
   const [dims, setDims] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +53,17 @@ export function ProposeForm({
   function addEntity(entity: Entity) {
     setEntityCache((prev) => new Map(prev).set(entity.id, entity));
   }
+
+  useEffect(() => {
+    if (verdictEdited) return;
+    const filled = slots.filter(Boolean);
+    if (filled.length < MIN_EQUIVALENCE_SLOTS) return;
+    const members = filled
+      .map((id) => entityCache.get(id))
+      .filter(Boolean) as Entity[];
+    if (members.length !== filled.length) return;
+    setVerdict(formatEquivalenceSentence(members));
+  }, [slots, entityCache, verdictEdited]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -57,15 +82,22 @@ export function ProposeForm({
       return data as Entity;
     };
 
-    const ea = await resolveEntity(a);
-    const eb = await resolveEntity(b);
-    if (!ea || !eb) {
+    const memberIds = slots.filter(Boolean);
+    const members = await Promise.all(memberIds.map(resolveEntity));
+    if (members.some((m) => !m)) {
       setError("Couldn't resolve selected sides. Try again.");
       setBusy(false);
       return;
     }
 
-    let slug = `${ea.slug}-${eb.slug}`;
+    const unique = new Set(memberIds);
+    if (unique.size !== memberIds.length) {
+      setError("Each slot must be a different entity.");
+      setBusy(false);
+      return;
+    }
+
+    let slug = equivalenceSlug(members);
     const { data: clash } = await supabase
       .from("comparisons")
       .select("id")
@@ -77,11 +109,14 @@ export function ProposeForm({
       .from("comparisons")
       .insert({
         slug,
-        entity_a_id: a,
-        entity_b_id: b,
+        entity_a_id: members[0].id,
+        entity_b_id: members[1].id,
         verdict_text: verdict,
         status: "user",
         created_by: user.id,
+        season_id: seasonId || null,
+        competition_id: competitionId || null,
+        context_note: contextNote.trim() || null,
       })
       .select("id")
       .single();
@@ -90,6 +125,21 @@ export function ProposeForm({
       setBusy(false);
       return;
     }
+
+    const memberRows = members.map((m, position) => ({
+      comparison_id: comp.id,
+      entity_id: m.id,
+      position,
+    }));
+    const { error: mErr } = await supabase
+      .from("comparison_members")
+      .insert(memberRows);
+    if (mErr) {
+      setError(mErr.message);
+      setBusy(false);
+      return;
+    }
+
     const rows = DIMENSION_ORDER.filter((d) => dims[d]?.trim()).map((d) => ({
       comparison_id: comp.id,
       dimension: d,
@@ -109,62 +159,73 @@ export function ProposeForm({
     router.push(`/c/${slug}`);
   }
 
+  const filledSlots = slots.filter(Boolean);
+  const uniqueSlots = new Set(filledSlots);
   const valid =
-    a &&
-    b &&
-    a !== b &&
-    verdict.trim().length > 4 &&
-    DIMENSION_ORDER.every((d) => dims[d]?.trim());
+    filledSlots.length >= MIN_EQUIVALENCE_SLOTS &&
+    uniqueSlots.size === filledSlots.length &&
+    verdict.trim().length > 4;
 
   return (
     <form onSubmit={submit} className="mt-8 space-y-5">
-      <div className="flex gap-3 items-start">
-        <EntityPicker
-          value={a}
-          onChange={setA}
-          clubs={clubs}
-          sports={sports}
-          label="this side…"
-          excludeId={b}
-          onEntityAdded={addEntity}
-        />
-        <span className="font-display text-2xl pt-8">&asymp;</span>
-        <EntityPicker
-          value={b}
-          onChange={setB}
-          clubs={clubs}
-          sports={sports}
-          label="…is this side"
-          excludeId={a}
-          onEntityAdded={addEntity}
-        />
-      </div>
+      <EquivalenceBuilder
+        slots={slots}
+        onChange={setSlots}
+        clubs={clubs}
+        sports={sports}
+        onEntityAdded={addEntity}
+      />
+
+      <ContextSelectors
+        sports={sports}
+        seasons={seasons}
+        competitions={competitions}
+        scopeSport={scopeSport}
+        onScopeSportChange={setScopeSport}
+        seasonId={seasonId}
+        onSeasonChange={setSeasonId}
+        competitionId={competitionId}
+        onCompetitionChange={setCompetitionId}
+        contextNote={contextNote}
+        onContextNoteChange={setContextNote}
+      />
+
       <label className="block">
         <span className="font-score text-xs uppercase text-ink/60">
-          the verdict, one line
+          the verdict — your equivalence sentence
         </span>
         <input
           value={verdict}
-          onChange={(e) => setVerdict(e.target.value)}
-          maxLength={140}
-          placeholder="Say it like you'd say it in the pub."
+          onChange={(e) => {
+            setVerdictEdited(true);
+            setVerdict(e.target.value);
+          }}
+          maxLength={200}
+          placeholder="Auto-fills from your picks — edit to sharpen the take."
           className="mt-1 w-full border-2 border-ink bg-whitewash px-3 py-2 rounded-[2px] focus:outline-none focus:border-pitch"
         />
       </label>
-      {DIMENSION_ORDER.map((d) => (
-        <label key={d} className="block">
-          <span className="font-score text-xs uppercase text-pitch">
-            {DIMENSION_LABELS[d]}
-          </span>
-          <input
-            value={dims[d] ?? ""}
-            onChange={(e) => setDims({ ...dims, [d]: e.target.value })}
-            maxLength={200}
-            placeholder={DIMENSION_HINTS[d]}
-            className="mt-1 w-full border-2 border-line bg-whitewash px-3 py-2 rounded-[2px] focus:outline-none focus:border-pitch"
-          />
-        </label>
-      ))}
+
+      <fieldset className="space-y-4">
+        <legend className="font-score text-xs uppercase text-ink/60">
+          why they&apos;re equivalent (optional — add any that apply)
+        </legend>
+        {DIMENSION_ORDER.map((d) => (
+          <label key={d} className="block">
+            <span className="font-score text-xs uppercase text-pitch">
+              {DIMENSION_LABELS[d]}
+            </span>
+            <input
+              value={dims[d] ?? ""}
+              onChange={(e) => setDims({ ...dims, [d]: e.target.value })}
+              maxLength={200}
+              placeholder={DIMENSION_HINTS[d]}
+              className="mt-1 w-full border-2 border-line bg-whitewash px-3 py-2 rounded-[2px] focus:outline-none focus:border-pitch"
+            />
+          </label>
+        ))}
+      </fieldset>
+
       {error && <p className="text-cardred">{error}</p>}
       <button
         disabled={!valid || busy}

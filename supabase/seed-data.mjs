@@ -2,57 +2,7 @@
 // People roster lives in supabase/seed/ — run gen-seed-sql.mjs after edits.
 
 export { sports, people } from "./seed/index.mjs";
-
-// [sport, name, slug, primary, secondary]
-export const entities = [
-  ["football", "Arsenal", "arsenal", "#EF0107", "#023474"],
-  ["football", "Manchester United", "manchester-united", "#DA291C", "#FBE122"],
-  ["football", "Manchester City", "manchester-city", "#6CABDD", "#1C2C5B"],
-  ["football", "Liverpool", "liverpool", "#C8102E", "#00B2A9"],
-  ["football", "Chelsea", "chelsea", "#034694", "#DBA111"],
-  ["football", "Tottenham Hotspur", "tottenham", "#132257", "#FFFFFF"],
-  ["football", "Newcastle United", "newcastle", "#241F20", "#FFFFFF"],
-  ["football", "West Ham United", "west-ham", "#7A263A", "#1BB1E7"],
-  ["football", "Everton", "everton", "#003399", "#FFFFFF"],
-  ["football", "Leeds United", "leeds", "#FFCD00", "#1D428A"],
-  ["football", "Aston Villa", "aston-villa", "#670E36", "#95BFE5"],
-  ["football", "Brighton & Hove Albion", "brighton", "#0057B8", "#FFCD00"],
-  ["football", "Crystal Palace", "crystal-palace", "#1B458F", "#C4122E"],
-  ["football", "Fulham", "fulham", "#1D1D1B", "#CC0000"],
-  ["football", "Wolverhampton Wanderers", "wolves", "#FDB913", "#231F20"],
-  ["football", "Nottingham Forest", "nottingham-forest", "#DD0000", "#FFFFFF"],
-  ["football", "Bayern Munich", "bayern-munich", "#DC052D", "#0066B2"],
-  ["football", "Real Madrid", "real-madrid", "#FFFFFF", "#FEBE10"],
-  ["football", "Barcelona", "barcelona", "#A50044", "#004D98"],
-  ["football", "Borussia Dortmund", "borussia-dortmund", "#FDE100", "#000000"],
-  ["football", "Paris Saint-Germain", "psg", "#004170", "#DA291C"],
-  ["football", "Atlético Madrid", "atletico-madrid", "#CB3524", "#262E62"],
-  ["football", "Inter Milan", "inter-milan", "#0066B3", "#221F20"],
-  ["football", "AS Roma", "as-roma", "#8E1F2F", "#F0BC42"],
-  ["football", "Celtic", "celtic-fc", "#018749", "#FFFFFF"],
-  ["nba", "Boston Celtics", "boston-celtics", "#007A33", "#BA9653"],
-  ["nba", "Los Angeles Lakers", "la-lakers", "#552583", "#FDB927"],
-  ["nba", "Golden State Warriors", "golden-state-warriors", "#1D428A", "#FFC72C"],
-  ["nba", "San Antonio Spurs", "san-antonio-spurs", "#000000", "#C4CED4"],
-  ["nba", "Brooklyn Nets", "brooklyn-nets", "#000000", "#FFFFFF"],
-  ["nba", "Phoenix Suns", "phoenix-suns", "#1D1160", "#E56020"],
-  ["nba", "Oklahoma City Thunder", "okc-thunder", "#007AC1", "#EF3B24"],
-  ["nba", "New York Knicks", "ny-knicks", "#006BB6", "#F58426"],
-  ["nba", "Sacramento Kings", "sacramento-kings", "#5A2D81", "#63727A"],
-  ["nba", "Philadelphia 76ers", "philadelphia-76ers", "#006BB6", "#ED174C"],
-  ["nba", "Indiana Pacers", "indiana-pacers", "#002D62", "#FDBB30"],
-  ["nba", "Houston Rockets", "houston-rockets", "#CE1141", "#000000"],
-  ["nba", "Atlanta Hawks", "atlanta-hawks", "#E03A3E", "#C1D32F"],
-  ["nba", "Charlotte Hornets", "charlotte-hornets", "#1D1160", "#00788C"],
-  ["nba", "Minnesota Timberwolves", "minnesota-timberwolves", "#0C2340", "#78BE20"],
-  ["nba", "Chicago Bulls", "chicago-bulls", "#CE1141", "#000000"],
-  ["nba", "Miami Heat", "miami-heat", "#98002E", "#F9A01B"],
-  ["nba", "Utah Jazz", "utah-jazz", "#002B5C", "#F9A01B"],
-  ["nba", "Dallas Mavericks", "dallas-mavericks", "#00538C", "#B8C4CA"],
-  ["nba", "Detroit Pistons", "detroit-pistons", "#C8102E", "#1D42BA"],
-  ["nba", "LA Clippers", "la-clippers", "#C8102E", "#1D428A"],
-  ["nba", "Portland Trail Blazers", "portland-trail-blazers", "#E03A3E", "#000000"],
-];
+export { clubs as entities } from "./seed/clubs.mjs";
 
 // a, b, verdict, { pedigree, trajectory, fanbase, city, aura, style }
 export const comparisons = [

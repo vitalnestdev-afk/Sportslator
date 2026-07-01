@@ -22,6 +22,31 @@ export type Sport = {
   slug: string;
 };
 
+export type Season = {
+  id: string;
+  sport_id: string;
+  label: string;
+  slug: string;
+  year_start: number | null;
+  year_end: number | null;
+};
+
+export type Competition = {
+  id: string;
+  sport_id: string;
+  name: string;
+  slug: string;
+  scope: string;
+};
+
+export type ComparisonContext = {
+  season_id: string | null;
+  competition_id: string | null;
+  context_note: string | null;
+  season?: Season | null;
+  competition?: Competition | null;
+};
+
 export type ResolvePersonResult = {
   entity_id: string;
   matched_existing: boolean;
@@ -49,6 +74,12 @@ export type LeaderboardRow = {
   net: number;
   entity_a: Entity;
   entity_b: Entity;
+  members?: Entity[];
+  season_id?: string | null;
+  competition_id?: string | null;
+  context_note?: string | null;
+  season?: Season | null;
+  competition?: Competition | null;
 };
 
 export type UserTakeRow = {
@@ -61,6 +92,7 @@ export type UserTakeRow = {
   net: number;
   entity_a: Entity;
   entity_b: Entity;
+  members?: Entity[];
 };
 
 export const DIMENSION_ORDER = [

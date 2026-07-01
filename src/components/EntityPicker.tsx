@@ -13,6 +13,7 @@ type Props = {
   clubs: Entity[];
   label: string;
   excludeId?: string;
+  excludeIds?: string[];
   allowedTypes?: EntityType[];
   onEntityAdded?: (entity: Entity) => void;
 };
@@ -24,6 +25,7 @@ export function EntityPicker({
   clubs,
   label,
   excludeId,
+  excludeIds = [],
   allowedTypes = ["club", "player", "coach"],
   onEntityAdded,
 }: Props) {
@@ -48,6 +50,12 @@ export function EntityPicker({
     [sports]
   );
 
+  const excluded = useMemo(() => {
+    const set = new Set(excludeIds);
+    if (excludeId) set.add(excludeId);
+    return set;
+  }, [excludeId, excludeIds]);
+
   useEffect(() => {
     if (value && cache.has(value)) setSelected(cache.get(value)!);
   }, [value, cache]);
@@ -59,7 +67,7 @@ export function EntityPicker({
         clubs.filter(
           (c) =>
             allowedTypes.includes(c.type) &&
-            c.id !== excludeId &&
+            !excluded.has(c.id) &&
             (typeFilter === "all" || c.type === typeFilter)
         )
       );
@@ -95,7 +103,7 @@ export function EntityPicker({
 
       const { data } = await req;
       setSearching(false);
-      const rows = ((data ?? []) as Entity[]).filter((e) => e.id !== excludeId);
+      const rows = ((data ?? []) as Entity[]).filter((e) => !excluded.has(e.id));
       setResults(rows);
       setCache((prev) => {
         const next = new Map(prev);
@@ -105,7 +113,7 @@ export function EntityPicker({
     }, 250);
 
     return () => clearTimeout(t);
-  }, [query, sportFilter, typeFilter, clubs, allowedTypes, excludeId, sports]);
+  }, [query, sportFilter, typeFilter, clubs, allowedTypes, excluded, sports]);
 
   const displayResults = useMemo(() => {
     if (query.trim().length < 2 && !sportFilter) return results;
