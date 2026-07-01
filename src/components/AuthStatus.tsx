@@ -31,12 +31,20 @@ export function AuthStatus() {
     );
   if (user.is_anonymous)
     return (
-      <Link href="/signin" className="font-score text-xs underline hover:text-pitch">
-        guest · claim
-      </Link>
+      <span className="font-score text-xs flex items-center gap-3">
+        <Link href="/my/takes" className="underline hover:text-pitch">
+          my takes
+        </Link>
+        <Link href="/signin" className="underline hover:text-pitch">
+          guest · claim
+        </Link>
+      </span>
     );
   return (
     <span className="font-score text-xs flex items-center gap-2">
+      <Link href="/my/takes" className="underline hover:text-pitch">
+        my takes
+      </Link>
       {user.email?.split("@")[0]}
       <button
         className="underline hover:text-cardred"

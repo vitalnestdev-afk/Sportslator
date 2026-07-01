@@ -1,0 +1,36 @@
+import { person, sportDefault as c } from "./helpers.mjs";
+
+const [p, s] = c("rugby");
+
+export const rugbyPeople = [
+  person("rugby", "Richie McCaw", "richie-mccaw", p, s, "player", "historic"),
+  person("rugby", "Dan Carter", "dan-carter", p, s, "player", "historic"),
+  person("rugby", "Jonny Wilkinson", "jonny-wilkinson", p, s, "player", "historic"),
+  person("rugby", "Brian O'Driscoll", "brian-odriscoll", p, s, "player", "historic"),
+  person("rugby", "Martin Johnson", "martin-johnson", p, s, "player", "historic"),
+  person("rugby", "Sergio Parisse", "sergio-parisse", p, s, "player", "historic"),
+  person("rugby", "George Gregan", "george-gregan", p, s, "player", "historic"),
+  person("rugby", "David Pocock", "david-pocock", p, s, "player", "historic"),
+  person("rugby", "Ma'a Nonu", "maa-nonu", p, s, "player", "historic"),
+  person("rugby", "Bryan Habana", "bryan-habana", p, s, "player", "historic"),
+  person("rugby", "Thierry Dusautoir", "thierry-dusautoir", p, s, "player", "historic"),
+  person("rugby", "Paul O'Connell", "paul-oconnell", p, s, "player", "historic"),
+  person("rugby", "Victor Matfield", "victor-matfield", p, s, "player", "historic"),
+  person("rugby", "Schalk Burger", "schalk-burger", p, s, "player", "historic"),
+  person("rugby", "Keith Wood", "keith-wood", p, s, "player", "historic"),
+  person("rugby", "Antoine Dupont", "antoine-dupont", p, s, "player", "active"),
+  person("rugby", "Finn Russell", "finn-russell", p, s, "player", "active"),
+  person("rugby", "Maro Itoje", "maro-itoje", p, s, "player", "active"),
+  person("rugby", "Beauden Barrett", "beauden-barrett", p, s, "player", "active"),
+  person("rugby", "Ardie Savea", "ardie-savea", p, s, "player", "active"),
+  person("rugby", "Cheslin Kolbe", "cheslin-kolbe", p, s, "player", "active"),
+  person("rugby", "Stuart Hogg", "stuart-hogg", p, s, "player", "active"),
+  person("rugby", "Siya Kolisi", "siya-kolisi", p, s, "player", "active"),
+  person("rugby", "Handré Pollard", "handre-pollard", p, s, "player", "active"),
+  person("rugby", "Warren Gatland", "warren-gatland", p, s, "coach", "active"),
+  person("rugby", "Steve Hansen", "steve-hansen", p, s, "coach", "historic"),
+  person("rugby", "Sir Clive Woodward", "clive-woodward", p, s, "coach", "historic"),
+  person("rugby", "Jake White", "jake-white", p, s, "coach", "historic"),
+  person("rugby", "Eddie Jones", "eddie-jones", p, s, "coach", "historic"),
+  person("rugby", "Fabien Galthié", "fabien-galthie", p, s, "coach", "active"),
+];

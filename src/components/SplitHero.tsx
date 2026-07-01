@@ -1,5 +1,6 @@
 import { fgOn, needsEdge } from "@/lib/colors";
 import type { Entity } from "@/lib/types";
+import { entityDisplayName } from "@/lib/types";
 
 /**
  * The signature: half-and-half club-colour split with a diagonal seam,
@@ -43,7 +44,7 @@ export function SplitHero({
             style={{ background: a.secondary_color }}
           />
           <h1 className="font-display text-3xl sm:text-5xl leading-[0.95] break-words">
-            {a.name}
+            {entityDisplayName(a)}
           </h1>
         </div>
         <div
@@ -58,7 +59,7 @@ export function SplitHero({
             style={{ background: b.secondary_color }}
           />
           <h1 className="font-display text-3xl sm:text-5xl leading-[0.95] break-words">
-            {b.name}
+            {entityDisplayName(b)}
           </h1>
         </div>
       </div>

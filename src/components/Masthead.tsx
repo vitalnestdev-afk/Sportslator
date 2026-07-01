@@ -8,10 +8,16 @@ export function Masthead() {
         <Link href="/" className="font-display text-2xl tracking-wide">
           Sportslator
         </Link>
-        <span className="font-score text-xs text-ink/60">
-          football &harr; nba
+        <span className="font-score text-xs text-ink/60 hidden sm:inline">
+          9 sports · clubs &amp; stars
         </span>
         <nav className="flex items-center gap-4">
+          <Link href="/players" className="font-score text-xs underline hover:text-pitch">
+            stars
+          </Link>
+          <Link href="/my/takes" className="font-score text-xs underline hover:text-pitch">
+            my takes
+          </Link>
           <Link href="/propose" className="font-score text-xs underline hover:text-pitch">
             new take
           </Link>
