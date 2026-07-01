@@ -174,6 +174,7 @@ export function ProposeForm({
         clubs={clubs}
         sports={sports}
         onEntityAdded={addEntity}
+        entityCache={entityCache}
       />
 
       <ContextSelectors

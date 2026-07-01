@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "seed:import": "node supabase/import/build-bulk.mjs",
+    "seed:competitions": "node supabase/import/build-competitions.mjs",
+    "seed:clubs-tm": "node supabase/import/build-clubs-tm.mjs",
+    "seed:memberships": "node supabase/import/build-memberships.mjs",
+    "seed:expand": "npm run seed:competitions && npm run seed:clubs-tm && npm run seed:import && npm run seed:memberships && npm run seed:gen",
     "seed:validate": "node supabase/validate-seed.mjs",
     "seed:gen": "node supabase/gen-seed-sql.mjs",
     "seed:sync": "node supabase/import/roster-sync.mjs"

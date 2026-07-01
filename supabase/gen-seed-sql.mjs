@@ -18,8 +18,11 @@ let sql = "-- generated seed\n";
 for (const s of sports)
   sql += `insert into sports (name, slug) values (${q(s.name)}, ${q(s.slug)}) on conflict (slug) do nothing;\n`;
 
-for (const [sport, name, slug, p, sec] of clubs)
-  sql += `insert into entities (sport_id, name, slug, type, status, primary_color, secondary_color) select id, ${q(name)}, ${q(slug)}, 'club', 'seed', ${q(p)}, ${q(sec)} from sports where slug=${q(sport)} on conflict (sport_id, slug) do nothing;\n`;
+for (const row of clubs) {
+  const [sport, name, slug, p, sec, extRef] = row;
+  const extSql = extRef ? q(extRef) : "null";
+  sql += `insert into entities (sport_id, name, slug, type, status, primary_color, secondary_color, external_ref) select id, ${q(name)}, ${q(slug)}, 'club', 'seed', ${q(p)}, ${q(sec)}, ${extSql} from sports where slug=${q(sport)} on conflict (sport_id, slug) do update set external_ref = coalesce(entities.external_ref, excluded.external_ref);\n`;
+}
 
 for (const row of people) {
   const [sport, name, slug, p, sec, type, era, disambiguator] = row;

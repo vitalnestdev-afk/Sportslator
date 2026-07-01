@@ -47,6 +47,12 @@ export type ComparisonContext = {
   competition?: Competition | null;
 };
 
+export type MembershipClub = Entity & {
+  is_primary: boolean;
+  season_start: number | null;
+  season_end: number | null;
+};
+
 export type ResolvePersonResult = {
   entity_id: string;
   matched_existing: boolean;
